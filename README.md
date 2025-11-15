@@ -123,7 +123,7 @@ The analysis revealed 4 distinct customer segments:
 ## Project Files
 
 - **Live Report:** [View Analysis](link-to-github-pages)
-- **R Markdown:** [eda_report.Rmd](link-to-file)
+- **R Markdown:** [eda_report.Rmd]([link-to-file](https://github.com/aye-ko/mall_exploratory_data_analysis/blob/main/index.Rmd))
 - **R Script:** [EDA.R](link-to-file)
 - **Dataset:** [Mall_Customers_Enhanced.csv](https://www.kaggle.com/datasets/vikasjigupta786/customer-analytics-practice-dataset)
 
