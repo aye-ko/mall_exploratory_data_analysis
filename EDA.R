@@ -1,0 +1,190 @@
+# LOAD AND SETUP
+
+# Load libraries
+library(tidyverse)
+library(ggplot2)
+library(moments)
+
+# Load data
+data <- read.csv("Mall_Customers_Enhanced.csv")
+
+# Get column names 
+numeric_cols <- names(select(data, where(is.numeric), -CustomerID))
+
+# Function to analyze numeric data
+analyze_numeric <- function(data, column_name) {
+  #Calculate Statistics
+  values <- data[[column_name]]
+  mean_val <- mean(values)
+  median_val <- median(values)
+  sd_val <- sd(values)
+  min_val <- min(values)
+  max_val <- max(values)
+  
+  sd1_lower <- max(mean_val -sd_val, min_val) # return the higher number if the subtraction is less than the minimum value
+  sd1_upper <- min(mean_val +sd_val, max_val) # return the lower number if the addition is more than the maximum value
+  
+  sd2_lower <- max(mean_val - (2 * sd_val), min_val)
+  sd2_upper <- min(mean_val + (2 * sd_val), max_val)
+  
+  sd3_lower <- max(mean_val - (3 * sd_val), min_val)
+  sd3_upper <- min(mean_val + (3 * sd_val), max_val)
+  
+  # Create Histogram
+  plot <- ggplot(data, aes(x = .data[[column_name]])) +
+    geom_histogram(bins = 20, fill = "steelblue", color = "black") +
+    geom_vline(xintercept = mean_val, color = "red", linetype = "dashed", linewidth = 1) +
+    geom_vline(xintercept = median_val, color = "green", linetype = "dashed", linewidth = 1) +
+    labs(title = paste(column_name, "Distribution"),
+         subtitle = "Red = Mean, Green = Median") +
+    theme_minimal()
+  
+  print(plot)
+
+
+  cat("\n", column_name, "Statistics:\n",
+      "Min: ", round(min_val, 2), "\n",
+      "Max: ", round(max_val, 2), "\n",
+      "Mean: ", round(mean_val, 2), "\n",
+      "Median: ", round(median_val, 2), "\n",
+      "SD: ", round(sd_val, 2), "\n",
+      "1SD Range: ", round(sd1_lower, 2), " - ", round(sd1_upper, 2), "\n",
+      "2SD Range: ", round(sd2_lower, 2), " - ", round(sd2_upper, 2), "\n",
+      "3SD Range: ", round(sd3_lower, 2), " - ", round(sd3_upper, 2), "\n\n")   
+}
+
+# Loop through and analyze
+for(col in numeric_cols) {
+  analyze_numeric(data, col)
+}
+
+# SCATTER PLOTS TO COMPARE RELATIONSHIPS
+compare_numeric <- function(data, column_name, second_column_name) {
+
+plot <- ggplot(data, aes(x = .data[[column_name]], y = .data[[second_column_name]])) +
+  geom_point(color = "steelblue", alpha = 0.6) +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = paste(column_name, "-", second_column_name, "Relationship"),
+       x = column_name,
+       y= second_column_name) + 
+  theme_minimal()
+
+print(plot)
+
+correlation <- cor(data[[column_name]], data[[second_column_name]])
+cat(column_name, "-", second_column_name,":", "Correlation:", round(correlation, 3), "\n\n")
+
+}  
+for (i in 1:(length(numeric_cols) - 1)) {
+  for(j in (i + 1):length(numeric_cols)){
+    compare_numeric(data, numeric_cols[i], numeric_cols[j])
+    }
+}
+
+# K MEANS and Clustering
+
+# Step 1: Select numeric columns (excluding CustomerID)
+cluster_data <- data %>% 
+  select(where(is.numeric), -CustomerID)
+
+# Step 2: Scale the data (convert to z-scores)
+cluster_data_scaled <- scale(cluster_data)
+
+# Step 3: Run clustering
+set.seed(123)
+clusters <- kmeans(cluster_data_scaled, centers = 4)
+View(clusters$centers)
+
+# Add cluster assignments to your original data
+data$Cluster <- clusters$cluster
+
+data <- data %>%
+  mutate(Cluster_Name = case_when(
+    Cluster == 1 ~ "Frugal Shoppers",
+    Cluster == 2 ~ "Big Spenders",
+    Cluster == 3 ~ "Poor-Young Spenders",
+    Cluster == 4 ~ "Efficient Spenders"
+  ))
+#Cluster summary stats
+cluster_summary_stats <- data %>%
+  group_by(Cluster_Name) %>%
+  summarize(
+    count = n(),
+    avg_age = round(mean(Age), 1),
+    avg_income = round(mean(Annual.Income..k..), 1),
+    avg_spending = round(mean(Spending.Score..1.100.), 1),
+    avg_savings = round(mean(Estimated.Savings..k..), 1),
+    avg_credit = round(mean(Credit.Score), 0),
+    avg_loyalty = round(mean(Loyalty.Years), 1)
+  )
+
+View(cluster_summary_stats)
+
+# Now look at which categories each cluster prefers
+data <- data %>%
+  mutate(Cluster = clusters$cluster)
+data%>%
+  group_by(Cluster, Preferred.Category) %>%
+  summarize(count=n())
+
+#visualize the Kmeans and cluster
+k_means_box_plot <- ggplot(data, aes(x = Cluster_Name, y = Spending.Score..1.100., fill = Cluster_Name)) +
+  geom_boxplot() +
+  scale_x_discrete(labels = c("F-S", "B-S", "PYS", "ES" )) +
+  labs(title = "Spending Score by Customer Segment",
+       x = "Customer Segment",
+       y = "Spending Score") +
+  theme_minimal()
+print(k_means_box_plot)
+
+
+# Calculate kurtosis for all numeric variables
+kurtosis_data <- data %>% 
+  select(where(is.numeric), -CustomerID, -Cluster) %>%
+  sapply(kurtosis)
+
+View(kurtosis_data)
+
+# Create a table of Cluster vs Preferred Category
+cluster_category_table <- table(data$Cluster_Name, data$Preferred.Category)
+
+# Look at the table
+View(cluster_category_table)
+
+# Run the chi-square test
+chi_result <- chisq.test(cluster_category_table)
+print(chi_result)
+
+# BUSINESS RECOMMENDATIONS
+
+cat("
+EXECUTIVE SUMMARY:
+Four distinct customer segments identified through statistical clustering.
+Chi-square test confirms segments have significantly different shopping preferences (p < 0.001).
+
+SEGMENT 1: Big Spenders (82 customers, 41%)
+- Profile: Middle-aged, loyal, high spending on luxury/electronics
+- Action: Double down on VIP programs, exclusive early access
+- Expected ROI: Highest - already proven spenders with strong loyalty
+
+SEGMENT 2: Efficient Spenders (36 customers, 18%) 
+- Profile: Wealthy savers who avoid luxury despite high income
+- Action: Reposition luxury as 'investment quality' - buy once, use forever
+- Expected ROI: Highest potential - untapped market with spending power
+
+SEGMENT 3: Frugal Shoppers (54 customers, 27%)
+- Profile: Budget-conscious, promo-sensitive
+- Action: Sales events, BOGO, loyalty reward programs
+- Expected ROI: Medium - frequent visits, lower ticket size
+
+SEGMENT 4: Poor-Young Spenders (28 customers, 14%)
+- Profile: Young, low income, living beyond means
+- Action: Student discounts, low-interest credit building programs
+- Expected ROI: Long-term - future high-value customers
+- Ethical Note: Avoid predatory lending practices
+
+IMPLEMENTATION PRIORITY:
+1. Launch 'investment luxury' campaign targeting Efficient Spenders
+2. Expand VIP programs for Big Spenders  
+3. Ethical credit-building for Young Spenders (lifetime value play)
+")
