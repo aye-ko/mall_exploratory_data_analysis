@@ -127,7 +127,7 @@ data%>%
   group_by(Cluster, Preferred.Category) %>%
   summarize(count=n())
 
-#visualize the Kmeans and cluster
+#visualize the K-means and cluster
 k_means_box_plot <- ggplot(data, aes(x = Cluster_Name, y = Spending.Score..1.100., fill = Cluster_Name)) +
   geom_boxplot() +
   scale_x_discrete(labels = c("F-S", "B-S", "PYS", "ES" )) +
@@ -137,6 +137,12 @@ k_means_box_plot <- ggplot(data, aes(x = Cluster_Name, y = Spending.Score..1.100
   theme_minimal()
 print(k_means_box_plot)
 
+preferred_category_box_plot <- ggplot(data, aes(x = Preferred.Category , y = Spending.Score..1.100., fill = Preferred.Category)) +
+  geom_boxplot() +
+  labs(title = "Spending Score by Preferred Category",
+       x = "Preferred Category",
+       y = "Spending Score") +
+  theme_minimal()
 
 # Calculate kurtosis for all numeric variables
 kurtosis_data <- data %>% 
@@ -178,7 +184,7 @@ SEGMENT 3: Frugal Shoppers (54 customers, 27%)
 - Expected ROI: Medium - frequent visits, lower ticket size
 
 SEGMENT 4: Poor-Young Spenders (28 customers, 14%)
-- Profile: Young, low income, living beyond means
+- Profile: Young, low-income, living beyond means
 - Action: Student discounts, low-interest credit building programs
 - Expected ROI: Long-term - future high-value customers
 - Ethical Note: Avoid predatory lending practices
