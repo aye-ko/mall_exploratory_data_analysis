@@ -130,6 +130,12 @@ k_means_box_plot <- ggplot(data, aes(x = Cluster_Name, y = Spending.Score..1.100
        y = "Spending Score") +
   theme_minimal()
 
+preferred_category_box_plot <- ggplot(data, aes(x = Preferred.Category , y = Spending.Score..1.100., fill = Preferred.Category)) +
+  geom_boxplot() +
+  labs(title = "Spending Score by Preferred Category",
+       x = "Preferred Category",
+       y = "Spending Score") +
+  theme_minimal()
 
 # Calculate kurtosis for all numeric variables
 kurtosis_data <- data %>% 
@@ -188,7 +194,7 @@ Customer Segmentation validated through testing. Results attached below:
 ```{r cluster_evidence, echo=FALSE}
 # Look at the table
 print(k_means_box_plot)
-
+print(preferred_category_box_plot)
 datatable(cluster_summary_stats, 
           options = list(pageLength = 5),
           caption = "Customer Segment Summary Statistics")
